@@ -11,7 +11,7 @@ def get_nobil_url():
     
     print("🌐 Fetching live stream URL from NOBIL API...", flush=True)
     try:
-        response = requests.get("https://api.nobil.no/realtime/connection", headers=headers)
+        response = requests.get("https://api.data.enova.no/nobil/real-time/v1/Realtime", headers=headers)
         response.raise_for_status()
         url = response.json().get('url')
         print(f"🔗 URL Received: {url}", flush=True)
