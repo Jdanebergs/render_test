@@ -3,6 +3,80 @@ import json
 import time
 import requests
 import websocket
+
+# 1. Function to get the live Stream URL from NOBIL
+def get_nobil_url():
+    api_key = os.environ.get('NOBIL_API_KEY')
+    headers = {"Ocp-Apim-Subscription-Key": api_key}
+    
+    print("🌐 Fetching live stream URL from NOBIL API...", flush=True)
+    try:
+        response = requests.get("https://api.nobil.no/realtime/connection", headers=headers)
+        response.raise_for_status()
+        url = response.json().get('url')
+        print(f"🔗 URL Received: {url}", flush=True)
+        return url
+    except Exception as e:
+        print(f"❌ API Error: Could not get URL. {e}", flush=True)
+        return None
+
+# 2. Handle incoming data
+def on_message(ws, message):
+    try:
+        data = json.loads(message)
+        nobil_id = data.get('nobilId', "")
+        
+        # --- TEST FILTERING ---
+        if nobil_id.startswith("SWE_7"):
+            # We use bright emojis so it's easy to spot in the Render logs
+            print(f"⭐ MATCH FOUND! ID: {nobil_id} | Status: {data.get('status')}", flush=True)
+        else:
+            # We print a dot for every skipped message to show the stream is alive 
+            # without filling the screen with text.
+            print(".", end="", flush=True) 
+            
+    except Exception as e:
+        print(f"\n⚠️ Data Error: {e}", flush=True)
+
+def on_error(ws, error):
+    print(f"\n❗ WebSocket Error: {error}", flush=True)
+
+def on_close(ws, close_status_code, close_msg):
+    print(f"\n🔌 Connection Closed. Reconnecting in 10s...", flush=True)
+    time.sleep(10)
+    start_streaming()
+
+# 3. Main Loop
+def start_streaming():
+    url = get_nobil_url()
+    
+    if not url:
+        print("Retry in 30s...", flush=True)
+        time.sleep(30)
+        start_streaming()
+        return
+
+    print("🚀 Connecting to WebSocket...", flush=True)
+    ws = websocket.WebSocketApp(
+        url,
+        on_message=on_message,
+        on_error=on_error,
+        on_close=on_close
+    )
+    
+    # ping_interval keeps the connection alive on Render's network
+    ws.run_forever(ping_interval=30, ping_timeout=10)
+
+if __name__ == "__main__":
+    start_streaming()
+
+
+"""
+import os
+import json
+import time
+import requests
+import websocket
 import boto3
 
 """
@@ -79,3 +153,5 @@ def start_streaming():
 
 if __name__ == "__main__":
     start_streaming()
+
+"""
