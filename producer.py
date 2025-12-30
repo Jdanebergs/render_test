@@ -7,7 +7,7 @@ import websocket
 # 1. Function to get the live Stream URL from NOBIL
 def get_nobil_url():
     api_key = os.environ.get('NOBIL_API_KEY')
-    headers = {"Ocp-Apim-Subscription-Key": api_key}
+    headers = {"x-api-key": api_key}
     
     print("🌐 Fetching live stream URL from NOBIL API...", flush=True)
     try:
