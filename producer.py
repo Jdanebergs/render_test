@@ -62,7 +62,8 @@ def on_close(ws, close_status_code, close_msg):
 def start_streaming():
     try:
         stream_url = get_nobil_url()
-       """
+        
+        """
         ws = websocket.WebSocketApp(
             stream_url,
             on_message=on_message,
