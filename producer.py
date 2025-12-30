@@ -79,7 +79,7 @@ import requests
 import websocket
 import boto3
 
-"""
+
 # 1. Setup AWS SQS Client
 sqs = boto3.client(
     'sqs',
@@ -88,7 +88,7 @@ sqs = boto3.client(
     aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
 )
 QUEUE_URL = os.environ.get('SQS_QUEUE_URL')
-"""
+
 
 # 2. Function to get the live Stream URL from NOBIL
 def get_nobil_url():
@@ -137,7 +137,6 @@ def start_streaming():
     try:
         stream_url = get_nobil_url()
         
-        """
         ws = websocket.WebSocketApp(
             stream_url,
             on_message=on_message,
@@ -145,7 +144,7 @@ def start_streaming():
             on_close=on_close
         )
         ws.run_forever()
-        """
+    
     except Exception as e:
         print(f"Failed to start: {e}. Retrying...")
         time.sleep(10)
