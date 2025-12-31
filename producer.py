@@ -25,7 +25,7 @@ def get_nobil_url():
         response.raise_for_status()
         
         # Extract the websocket URL from the response
-        url = response.json().get('url')
+        url = response.json().get('accessToken')
         print(f"🔗 WebSocket URL Received: {url}", flush=True)
         return url
     except Exception as e:
