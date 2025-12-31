@@ -6,15 +6,27 @@ import websocket
 
 # 1. Function to get the live Stream URL from NOBIL
 def get_nobil_url():
-    api_key = os.environ.get('NOBIL_API_KEY')
-    headers = {"x-api-key": api_key}
+    # Ensure this variable is named NOBIL_API_KEY in your Render environment
+    api_key = os.environ.get('NOBIL_API_KEY') 
     
-    print("🌐 Fetching live stream URL from NOBIL API...", flush=True)
+    # Headers must match your working Postman setup
+    headers = {
+        "x-api-key": api_key,
+        "Content-Length": "0"  # Postman showed Content-Length: 0
+    }
+    
+    # Use the Enova endpoint from your Postman screenshot
+    url_endpoint = "https://api.data.enova.no/nobil/real-time/v1/Realtime"
+    
+    print(f"🌐 Fetching live stream URL from: {url_endpoint}", flush=True)
     try:
-        response = requests.get("https://api.data.enova.no/nobil/real-time/v1/Realtime", headers=headers)
+        # CRITICAL: Use .post() instead of .get()
+        response = requests.post(url_endpoint, headers=headers)
         response.raise_for_status()
+        
+        # Extract the websocket URL from the response
         url = response.json().get('url')
-        print(f"🔗 URL Received: {url}", flush=True)
+        print(f"🔗 WebSocket URL Received: {url}", flush=True)
         return url
     except Exception as e:
         print(f"❌ API Error: Could not get URL. {e}", flush=True)
