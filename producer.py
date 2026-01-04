@@ -20,20 +20,36 @@ QUEUE_URL = os.environ.get('SQS_QUEUE_URL')
 def load_target_stations(file_name):
     target_ids = set()
     try:
-        # 'utf-8-sig' handles the BOM character if exported from Excel
+        # Check if file exists first
+        if not os.path.exists(file_name):
+            print(f"❌ ERROR: File {file_name} not found in current directory!", flush=True)
+            return target_ids
+
         with open(file_name, mode='r', encoding='utf-8-sig') as f:
+            # Diagnostic: Print the raw first line to check the delimiter and headers
+            raw_header_line = f.readline()
+            print(f"🔍 RAW HEADER LINE: {raw_header_line.strip()}", flush=True)
+            f.seek(0) # Reset to start of file for DictReader
+
             reader = csv.DictReader(f)
             
-            # This handles cases where headers have extra spaces (e.g., " evse_uid ")
-            reader.fieldnames = [name.strip() for name in reader.fieldnames]
+            # Diagnostic: Print detected headers
+            print(f"📋 DETECTED HEADERS: {reader.fieldnames}", flush=True)
+            
+            # Clean headers (removes extra spaces)
+            if reader.fieldnames:
+                reader.fieldnames = [name.strip() for name in reader.fieldnames]
             
             for row in reader:
-                # We specifically look for the 'evse_uid' column
+                # IMPORTANT: This key must match one of the 'DETECTED HEADERS' exactly
                 uid = row.get('evse_uid')
                 if uid:
                     target_ids.add(uid.strip())
-                    
-        print(f"✅ Loaded {len(target_ids)} target evse_uids from {file_name}", flush=True)
+                elif not target_ids:
+                    # Diagnostic: If first row fails, print it to see why
+                    print(f"⚠️ FAILED TO EXTRACT ID FROM ROW: {row}", flush=True)
+
+        print(f"✅ FINAL COUNT: Loaded {len(target_ids)} target evse_uids", flush=True)
     except Exception as e:
         print(f"⚠️ Error loading CSV: {e}", flush=True)
     return target_ids
