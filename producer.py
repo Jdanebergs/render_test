@@ -15,48 +15,67 @@ sqs = boto3.client(
 )
 QUEUE_URL = os.environ.get('SQS_QUEUE_URL')
 
+# 2. Load Target Stations using evse_uid
+def load_target_stations(file_name):
+    target_ids = set()
+    try:
+        # 'utf-8-sig' handles the BOM character if exported from Excel
+        with open(file_name, mode='r', encoding='utf-8-sig') as f:
+            reader = csv.DictReader(f)
+            
+            # This handles cases where headers have extra spaces (e.g., " evse_uid ")
+            reader.fieldnames = [name.strip() for name in reader.fieldnames]
+            
+            for row in reader:
+                # We specifically look for the 'evse_uid' column
+                uid = row.get('evse_uid')
+                if uid:
+                    target_ids.add(uid.strip())
+                    
+        print(f"✅ Loaded {len(target_ids)} target evse_uids from {file_name}", flush=True)
+    except Exception as e:
+        print(f"⚠️ Error loading CSV: {e}", flush=True)
+    return target_ids
+
+# Initialize target set from your uploaded list
+TARGET_EVSE_IDS = load_target_stations('list_of_stations.csv')
+
+# Initialize the set once at startup
+TARGET_STATIONS = load_target_stations('list_of_stations.csv')
+
 def get_nobil_url():
     api_key = os.environ.get('NOBIL_API_KEY') 
-    headers = {
-        "x-api-key": api_key,
-        "Content-Length": "0" 
-    }
+    headers = {"x-api-key": api_key, "Content-Length": "0"}
     url_endpoint = "https://api.data.enova.no/nobil/real-time/v1/Realtime"
     
-    print(f"🌐 Fetching live stream URL from: {url_endpoint}", flush=True)
     try:
-        # Verified: Use .post() as shown in your Postman setup
         response = requests.post(url_endpoint, headers=headers)
         response.raise_for_status()
-        
-        # CORRECTED: Using 'accessToken' as per your working code
         url = response.json().get('accessToken')
-        print(f"🔗 WebSocket URL Received: {url}", flush=True)
         return url
     except Exception as e:
-        print(f"❌ API Error: Could not get URL. {e}", flush=True)
+        print(f"❌ API Error: {e}", flush=True)
         return None
 
 def on_message(ws, message):
     try:
         data = json.loads(message)
-        nobil_id = data.get('nobilId', "")
+        # Extract evse_uid from the WebSocket message body
+        current_evse_uid = data.get('evseUId', "")
         
-        # --- FILTERING LOGIC ---
-        if nobil_id.startswith("SWE_7"):
-            print(f"⭐ MATCH FOUND! ID: {nobil_id}. Sending to SQS...", flush=True)
-            
-            # Send the filtered data to AWS SQS
+        # --- MATCHING LOGIC ---
+        if current_evse_uid in TARGET_EVSE_IDS:
+            print(f"⭐ TARGET MATCH: {current_evse_uid}. Sending to SQS...", flush=True)
             sqs.send_message(
                 QueueUrl=QUEUE_URL,
                 MessageBody=json.dumps(data)
             )
         else:
-            # Keep printing dots so you know it's alive
-            print(".", end="", flush=True) 
+            # Print a dot for non-matching stations to keep logs quiet but active
+            print(".", end="", flush=True)
             
     except Exception as e:
-        print(f"\n⚠️ Error: {e}", flush=True)
+        print(f"\n⚠️ Data Error: {e}", flush=True)
 
 def on_error(ws, error):
     print(f"\n❗ WebSocket Error: {error}", flush=True)
