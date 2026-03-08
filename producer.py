@@ -55,7 +55,7 @@ def load_target_stations(file_name):
     return target_ids
 
 # Initialize target set from your uploaded list
-TARGET_EVSE_IDS = load_target_stations('list_of_stations.csv')
+TARGET_EVSE_IDS = load_target_stations('list_of_stations_extensive.csv')
 
 def get_nobil_url():
     api_key = os.environ.get('NOBIL_API_KEY') 
