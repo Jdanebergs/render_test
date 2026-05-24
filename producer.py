@@ -76,10 +76,11 @@ def on_message(ws, message):
         data = json.loads(message)
         # Extract evse_uid from the WebSocket message body
         current_evse_uid = data.get('evseUId', "")
+        current_nobil_id = data.get('nobilId', "") # <-- NY RAD: Hämtar Nobil ID
         
         # --- MATCHING LOGIC ---
-        if current_evse_uid in TARGET_EVSE_IDS:
-            print(f"⭐ TARGET MATCH: {current_evse_uid}. Sending to SQS...", flush=True)
+        if current_evse_uid in TARGET_EVSE_IDS and current_nobil_id.startswith("SWE_"):
+            print(f"TARGET MATCH (SWE): {current_evse_uid} (EVSE: {current_evse_uid}). Sending to SQS...", flush=True)
             sqs.send_message(
                 QueueUrl=QUEUE_URL,
                 MessageBody=json.dumps(data)
